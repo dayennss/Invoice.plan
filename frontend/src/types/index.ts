@@ -25,25 +25,25 @@ export interface Transaction {
   amount: number
   date: string
   category: TransactionCategory
-  installmentCurrent?: number
-  installmentTotal?: number
-  isRecurring?: boolean
+  installment_current?: number
+  installment_total?: number
+  is_recurring?: boolean
 }
 
 export interface Invoice {
   id: string
-  userId: string
+  user_id: string
   bank: string
-  yearMonth: string
+  year_month: string
   status: 'processing' | 'done' | 'error'
-  createdAt: string
+  created_at: string
 }
 
 export interface MonthlySummary {
-  yearMonth: string
+  year_month: string
   total: number
-  byCategory: Record<TransactionCategory, number>
-  transactionCount: number
+  by_category: Record<string, number>
+  transaction_count: number
 }
 
 export const CATEGORY_LABELS: Record<TransactionCategory, string> = {
