@@ -20,6 +20,8 @@ dist/
 .nuxt/
 .cache/
 *.local
+frontend/.vite/
+frontend/.env
 
 # AWS CDK
 cdk.out/

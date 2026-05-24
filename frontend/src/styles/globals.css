@@ -1,0 +1,214 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   invoice.plan — Design System Global
+   ============================================================ */
+
+/* 1. BRAND TOKENS */
+:root {
+  --color-black:       #050505;
+  --color-black-soft:  #101211;
+  --color-graphite:    #1E2421;
+  --color-green:       #19C463;
+  --color-green-light: #27E077;
+  --color-green-dark:  #0B6B3A;
+  --color-white:       #FFFFFF;
+  --color-white-soft:  #E8EDEB;
+  --color-gray:        #A8B2AD;
+  --color-red:         #F43F5E;
+  --color-red-soft:    #FF6B85;
+  --color-red-dark:    #9F1239;
+  --color-amber:       #F59E0B;
+  --color-amber-soft:  #FCD34D;
+}
+
+/* 2. TOKENS SEMÂNTICOS */
+:root {
+  --bg-base:           var(--color-black);
+  --bg-subtle:         var(--color-black-soft);
+  --bg-card:           var(--color-graphite);
+  --bg-elevated:       #252D29;
+  --bg-overlay:        rgba(5, 5, 5, 0.85);
+
+  --border-default:    rgba(168, 178, 173, 0.12);
+  --border-strong:     rgba(168, 178, 173, 0.25);
+  --border-accent:     var(--color-green);
+
+  --text-primary:      var(--color-white);
+  --text-secondary:    var(--color-white-soft);
+  --text-muted:        var(--color-gray);
+  --text-disabled:     #4A5450;
+  --text-accent:       var(--color-green);
+
+  --accent:            var(--color-green);
+  --accent-hover:      var(--color-green-light);
+  --accent-active:     #15A855;
+  --accent-subtle:     rgba(25, 196, 99, 0.10);
+  --accent-fg:         var(--color-black);
+
+  --focus-ring:        rgba(25, 196, 99, 0.40);
+  --hover-overlay:     rgba(255, 255, 255, 0.04);
+  --active-overlay:    rgba(255, 255, 255, 0.08);
+
+  --radius-sm:         6px;
+  --radius-md:         10px;
+  --radius-lg:         14px;
+  --radius-xl:         20px;
+  --radius-full:       9999px;
+
+  --shadow-sm:         0 1px 3px rgba(0, 0, 0, 0.40);
+  --shadow-md:         0 4px 12px rgba(0, 0, 0, 0.50);
+  --shadow-lg:         0 8px 32px rgba(0, 0, 0, 0.60);
+  --shadow-accent:     0 0 0 1px rgba(25, 196, 99, 0.30), 0 4px 16px rgba(25, 196, 99, 0.10);
+
+  --transition-fast:   150ms ease;
+  --transition-base:   250ms ease;
+  --transition-slow:   400ms ease;
+
+  --font-sans:         'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:         'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* 3. TOKENS FINANCEIROS */
+:root {
+  --financial-income:         var(--color-green-light);
+  --financial-income-bg:      rgba(39, 224, 119, 0.10);
+  --financial-income-border:  rgba(39, 224, 119, 0.25);
+  --financial-expense:        var(--color-red);
+  --financial-expense-bg:     rgba(244, 63, 94, 0.10);
+  --financial-expense-border: rgba(244, 63, 94, 0.25);
+  --financial-neutral:        var(--color-gray);
+  --financial-neutral-bg:     rgba(168, 178, 173, 0.10);
+  --financial-warning:        var(--color-amber);
+  --financial-warning-bg:     rgba(245, 158, 11, 0.10);
+  --financial-warning-border: rgba(245, 158, 11, 0.25);
+}
+
+/* 4. PALETA DE GRÁFICOS */
+:root {
+  --chart-1:  #F59E0B;
+  --chart-2:  #3B82F6;
+  --chart-3:  #A78BFA;
+  --chart-4:  #EC4899;
+  --chart-5:  #F97316;
+  --chart-6:  #06B6D4;
+  --chart-7:  #19C463;
+  --chart-8:  #F43F5E;
+  --chart-9:  #A8B2AD;
+  --chart-10: #64748B;
+}
+
+/* 5. SHADCN/UI (HSL) */
+:root {
+  --background:           135 5% 2%;
+  --foreground:           150 12% 92%;
+  --card:                 138 10% 13%;
+  --card-foreground:      150 12% 92%;
+  --popover:              135 8% 8%;
+  --popover-foreground:   150 12% 92%;
+  --primary:              146 77% 43%;
+  --primary-foreground:   135 5% 2%;
+  --secondary:            138 10% 13%;
+  --secondary-foreground: 150 12% 92%;
+  --muted:                138 10% 13%;
+  --muted-foreground:     150 5% 68%;
+  --accent:               146 77% 43%;
+  --accent-foreground:    135 5% 2%;
+  --destructive:          349 89% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border:               150 5% 68%;
+  --input:                138 10% 13%;
+  --ring:                 146 77% 43%;
+  --radius:               0.625rem;
+}
+
+/* 6. BASE */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background-color: var(--color-black);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+
+::selection {
+  background-color: var(--accent-subtle);
+  color: var(--color-green-light);
+}
+
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: var(--color-black-soft); }
+::-webkit-scrollbar-thumb  { background: var(--border-strong); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-gray); }
+
+:focus-visible {
+  outline: 2px solid var(--color-green);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--text-accent);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+a:hover { color: var(--color-green-light); }
+
+/* 7. UTILITÁRIOS FINANCEIROS */
+@layer components {
+  .financial-value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    letter-spacing: -0.02em;
+  }
+
+  .value-income  { color: var(--financial-income); }
+  .value-expense { color: var(--financial-expense); }
+  .value-neutral { color: var(--financial-neutral); }
+  .value-warning { color: var(--financial-warning); }
+
+  .badge-income {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    color: var(--financial-income);
+    background-color: var(--financial-income-bg);
+    border: 1px solid var(--financial-income-border);
+  }
+  .badge-expense {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    color: var(--financial-expense);
+    background-color: var(--financial-expense-bg);
+    border: 1px solid var(--financial-expense-border);
+  }
+  .badge-warning {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    color: var(--financial-warning);
+    background-color: var(--financial-warning-bg);
+    border: 1px solid var(--financial-warning-border);
+  }
+
+  .ip-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    transition: border-color var(--transition-fast);
+  }
+  .ip-card:hover { border-color: var(--border-strong); }
+  .ip-card-accent { border-color: var(--border-accent); box-shadow: var(--shadow-accent); }
+}
