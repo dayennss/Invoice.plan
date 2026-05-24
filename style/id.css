@@ -1,0 +1,16 @@
+
+/* Paleta refinada para identidade */
+:root {
+  --color-black: #050505;
+  --color-black-soft: #101211;
+  --color-graphite: #1E2421;
+
+  --color-green: #19C463;
+  --color-green-light: #27E077;
+  --color-green-dark: #0B6B3A;
+
+  --color-white: #FFFFFF;
+  --color-white-soft: #E8EDEB;
+  --color-gray: #A8B2AD;
+}
+

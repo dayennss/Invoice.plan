@@ -1,0 +1,342 @@
+/* ============================================================
+   invoice.plan — Design System Global
+   Fonte de verdade para toda a aplicação.
+   Compatível com Tailwind CSS + shadcn/ui.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. BRAND TOKENS (identidade — não usar diretamente no app,
+      referenciar via tokens semânticos abaixo)
+   ------------------------------------------------------------ */
+:root {
+  /* Pretos / fundos */
+  --color-black:       #050505;
+  --color-black-soft:  #101211;
+  --color-graphite:    #1E2421;
+
+  /* Verde (marca) */
+  --color-green:       #19C463;
+  --color-green-light: #27E077;
+  --color-green-dark:  #0B6B3A;
+
+  /* Brancos / textos */
+  --color-white:       #FFFFFF;
+  --color-white-soft:  #E8EDEB;
+  --color-gray:        #A8B2AD;
+
+  /* Vermelho (único não definido na marca — necessário para finanças) */
+  --color-red:         #F43F5E;
+  --color-red-soft:    #FF6B85;
+  --color-red-dark:    #9F1239;
+
+  /* Âmbar (alertas e avisos) */
+  --color-amber:       #F59E0B;
+  --color-amber-soft:  #FCD34D;
+}
+
+/* ------------------------------------------------------------
+   2. TOKENS SEMÂNTICOS DA APLICAÇÃO
+      Use ESTES nos componentes, nunca os brand tokens diretamente.
+   ------------------------------------------------------------ */
+:root {
+  /* Fundos */
+  --bg-base:           var(--color-black);        /* fundo da página */
+  --bg-subtle:         var(--color-black-soft);   /* seções alternadas */
+  --bg-card:           var(--color-graphite);     /* cards, modais, sidebars */
+  --bg-elevated:       #252D29;                   /* dropdowns, tooltips */
+  --bg-overlay:        rgba(5, 5, 5, 0.85);       /* overlays */
+
+  /* Bordas */
+  --border-default:    rgba(168, 178, 173, 0.12); /* borda padrão sutil */
+  --border-strong:     rgba(168, 178, 173, 0.25); /* borda com mais ênfase */
+  --border-accent:     var(--color-green);        /* borda de foco/ativo */
+
+  /* Textos */
+  --text-primary:      var(--color-white);        /* títulos, valores */
+  --text-secondary:    var(--color-white-soft);   /* subtítulos */
+  --text-muted:        var(--color-gray);         /* labels, datas, hints */
+  --text-disabled:     #4A5450;                   /* desabilitado */
+  --text-accent:       var(--color-green);        /* links, destaques */
+
+  /* Marca / primário */
+  --accent:            var(--color-green);
+  --accent-hover:      var(--color-green-light);
+  --accent-active:     #15A855;
+  --accent-subtle:     rgba(25, 196, 99, 0.10);   /* fundo de badge verde */
+  --accent-fg:         var(--color-black);        /* texto sobre fundo verde */
+
+  /* Estados */
+  --focus-ring:        rgba(25, 196, 99, 0.40);
+  --hover-overlay:     rgba(255, 255, 255, 0.04);
+  --active-overlay:    rgba(255, 255, 255, 0.08);
+
+  /* Border radius */
+  --radius-sm:         6px;
+  --radius-md:         10px;
+  --radius-lg:         14px;
+  --radius-xl:         20px;
+  --radius-full:       9999px;
+
+  /* Sombras (dark theme: sombras escuras + glow verde sutil) */
+  --shadow-sm:         0 1px 3px rgba(0, 0, 0, 0.40);
+  --shadow-md:         0 4px 12px rgba(0, 0, 0, 0.50);
+  --shadow-lg:         0 8px 32px rgba(0, 0, 0, 0.60);
+  --shadow-accent:     0 0 0 1px rgba(25, 196, 99, 0.30), 0 4px 16px rgba(25, 196, 99, 0.10);
+
+  /* Transições */
+  --transition-fast:   150ms ease;
+  --transition-base:   250ms ease;
+  --transition-slow:   400ms ease;
+}
+
+/* ------------------------------------------------------------
+   3. TOKENS FINANCEIROS SEMÂNTICOS
+      Conveções universais de finanças: verde = positivo, vermelho = negativo.
+      O verde aqui é uma tonalidade DIFERENTE do verde da marca para não confundir.
+   ------------------------------------------------------------ */
+:root {
+  /* Receita / entrada / positivo */
+  --financial-income:        var(--color-green-light);   /* #27E077 — mais claro que a marca */
+  --financial-income-bg:     rgba(39, 224, 119, 0.10);
+  --financial-income-border: rgba(39, 224, 119, 0.25);
+
+  /* Despesa / saída / negativo */
+  --financial-expense:       var(--color-red);           /* #F43F5E */
+  --financial-expense-bg:    rgba(244, 63, 94, 0.10);
+  --financial-expense-border:rgba(244, 63, 94, 0.25);
+
+  /* Neutro / transferência */
+  --financial-neutral:       var(--color-gray);
+  --financial-neutral-bg:    rgba(168, 178, 173, 0.10);
+
+  /* Alerta (parcela vencendo, limite próximo) */
+  --financial-warning:       var(--color-amber);
+  --financial-warning-bg:    rgba(245, 158, 11, 0.10);
+  --financial-warning-border:rgba(245, 158, 11, 0.25);
+}
+
+/* ------------------------------------------------------------
+   4. PALETA DE GRÁFICOS (Recharts — categorias de gastos)
+      Cores distintas e legíveis sobre fundo escuro.
+   ------------------------------------------------------------ */
+:root {
+  --chart-alimentacao:   #F59E0B;   /* âmbar    — Alimentação */
+  --chart-transporte:    #3B82F6;   /* azul     — Transporte */
+  --chart-moradia:       #A78BFA;   /* roxo     — Moradia */
+  --chart-saude:         #EC4899;   /* rosa     — Saúde */
+  --chart-lazer:         #F97316;   /* laranja  — Lazer */
+  --chart-educacao:      #06B6D4;   /* ciano    — Educação */
+  --chart-assinaturas:   #19C463;   /* verde    — Assinaturas */
+  --chart-vestuario:     #F43F5E;   /* vermelho — Vestuário */
+  --chart-transferencias:#A8B2AD;   /* cinza    — Transferências */
+  --chart-outros:        #64748B;   /* slate    — Outros */
+
+  /* Array acessível via JS: var(--chart-1) ... var(--chart-10) */
+  --chart-1:  var(--chart-alimentacao);
+  --chart-2:  var(--chart-transporte);
+  --chart-3:  var(--chart-moradia);
+  --chart-4:  var(--chart-saude);
+  --chart-5:  var(--chart-lazer);
+  --chart-6:  var(--chart-educacao);
+  --chart-7:  var(--chart-assinaturas);
+  --chart-8:  var(--chart-vestuario);
+  --chart-9:  var(--chart-transferencias);
+  --chart-10: var(--chart-outros);
+}
+
+/* ------------------------------------------------------------
+   5. SHADCN/UI — VARIÁVEIS COMPATÍVEIS (HSL)
+      shadcn/ui exige variáveis em formato HSL sem a função hsl().
+   ------------------------------------------------------------ */
+:root {
+  --background:          135 5% 2%;        /* #050505 */
+  --foreground:          150 12% 92%;      /* #E8EDEB */
+
+  --card:                138 10% 13%;      /* #1E2421 */
+  --card-foreground:     150 12% 92%;
+
+  --popover:             135 8% 8%;        /* #101211 */
+  --popover-foreground:  150 12% 92%;
+
+  --primary:             146 77% 43%;      /* #19C463 */
+  --primary-foreground:  135 5% 2%;        /* preto sobre verde */
+
+  --secondary:           138 10% 13%;      /* graphite */
+  --secondary-foreground:150 12% 92%;
+
+  --muted:               138 10% 13%;
+  --muted-foreground:    150 5% 68%;       /* #A8B2AD */
+
+  --accent:              146 77% 43%;      /* verde marca */
+  --accent-foreground:   135 5% 2%;
+
+  --destructive:         349 89% 60%;      /* #F43F5E */
+  --destructive-foreground: 0 0% 100%;
+
+  --border:              150 5% 68% / 0.12;
+  --input:               138 10% 13%;
+  --ring:                146 77% 43%;
+
+  --radius:              0.625rem;         /* 10px */
+}
+
+/* ------------------------------------------------------------
+   6. TIPOGRAFIA
+   ------------------------------------------------------------ */
+:root {
+  /* Famílias */
+  --font-sans:   'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:   'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  /* Escala */
+  --text-xs:     0.75rem;    /* 12px */
+  --text-sm:     0.875rem;   /* 14px */
+  --text-base:   1rem;       /* 16px */
+  --text-lg:     1.125rem;   /* 18px */
+  --text-xl:     1.25rem;    /* 20px */
+  --text-2xl:    1.5rem;     /* 24px */
+  --text-3xl:    1.875rem;   /* 30px */
+  --text-4xl:    2.25rem;    /* 36px */
+
+  /* Pesos */
+  --font-normal:   400;
+  --font-medium:   500;
+  --font-semibold: 600;
+  --font-bold:     700;
+}
+
+/* ------------------------------------------------------------
+   7. ESTILOS BASE
+   ------------------------------------------------------------ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--color-black);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Seleção de texto */
+::selection {
+  background-color: var(--accent-subtle);
+  color: var(--color-green-light);
+}
+
+/* Scrollbar customizada */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-black-soft);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray);
+}
+
+/* Focus ring acessível */
+:focus-visible {
+  outline: 2px solid var(--color-green);
+  outline-offset: 2px;
+}
+
+/* Links */
+a {
+  color: var(--text-accent);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+a:hover {
+  color: var(--color-green-light);
+}
+
+/* ------------------------------------------------------------
+   8. CLASSES UTILITÁRIAS FINANCEIRAS
+   ------------------------------------------------------------ */
+
+/* Valores monetários — fonte mono, alinhamento tabular */
+.financial-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: -0.02em;
+}
+
+/* Indicadores de positivo/negativo */
+.value-income {
+  color: var(--financial-income);
+}
+.value-expense {
+  color: var(--financial-expense);
+}
+.value-neutral {
+  color: var(--financial-neutral);
+}
+.value-warning {
+  color: var(--financial-warning);
+}
+
+/* Badges de categoria */
+.badge-income {
+  color: var(--financial-income);
+  background-color: var(--financial-income-bg);
+  border: 1px solid var(--financial-income-border);
+  border-radius: var(--radius-full);
+  padding: 2px 10px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+}
+.badge-expense {
+  color: var(--financial-expense);
+  background-color: var(--financial-expense-bg);
+  border: 1px solid var(--financial-expense-border);
+  border-radius: var(--radius-full);
+  padding: 2px 10px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+}
+.badge-warning {
+  color: var(--financial-warning);
+  background-color: var(--financial-warning-bg);
+  border: 1px solid var(--financial-warning-border);
+  border-radius: var(--radius-full);
+  padding: 2px 10px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+}
+
+/* Card padrão */
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast);
+}
+.card:hover {
+  border-color: var(--border-strong);
+}
+.card-accent {
+  border-color: var(--border-accent);
+  box-shadow: var(--shadow-accent);
+}
