@@ -53,7 +53,7 @@ export default function DashboardPage() {
 
         {isLoading ? (
           <LoadingSkeleton />
-        ) : data?.summary.transaction_count === 0 ? (
+        ) : (data?.summary?.transaction_count ?? 0) === 0 ? (
           /* Estado vazio — convida ao upload */
           <div className="flex flex-col gap-6">
             <EmptyState month={monthLabel} />
@@ -65,18 +65,18 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <SummaryCard
                 title="Total do mês"
-                value={data?.summary.total ?? 0}
-                subtitle={`${data?.summary.transaction_count ?? 0} transações`}
+                value={data?.summary?.total ?? 0}
+                subtitle={`${data?.summary?.transaction_count ?? 0} transações`}
                 highlight
               />
               <SummaryCard
                 title="Maior categoria"
-                value={topCategoryValue(data?.summary.by_category)}
-                subtitle={topCategoryName(data?.summary.by_category)}
+                value={topCategoryValue(data?.summary?.by_category)}
+                subtitle={topCategoryName(data?.summary?.by_category)}
               />
               <SummaryCard
                 title="Média por dia"
-                value={(data?.summary.total ?? 0) / daysInMonth(yearMonth)}
+                value={(data?.summary?.total ?? 0) / daysInMonth(yearMonth)}
                 subtitle="no período"
               />
             </div>
@@ -84,7 +84,7 @@ export default function DashboardPage() {
             {/* Gráfico + upload */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2">
-                <CategoryChart byCategory={data?.summary.by_category ?? {}} />
+                <CategoryChart byCategory={data?.summary?.by_category ?? {}} />
               </div>
               <div>
                 <InvoiceUpload />
