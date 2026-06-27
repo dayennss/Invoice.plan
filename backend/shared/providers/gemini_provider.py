@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import boto3
 import fitz  # PyMuPDF
 import google.generativeai as genai
 from PIL import Image
@@ -8,6 +9,12 @@ import io
 
 from ..ai_provider import AIProvider
 from ..models import Transaction, TransactionCategory
+
+
+def _get_ssm_value(param_name: str) -> str:
+    client = boto3.client("ssm", region_name=os.environ.get("AWS_ACCOUNT_REGION", "us-east-1"))
+    resp = client.get_parameter(Name=param_name, WithDecryption=True)
+    return resp["Parameter"]["Value"]
 
 _CATEGORIES = [
     "alimentacao", "transporte", "moradia", "saude",
@@ -35,8 +42,10 @@ Exemplo: [{"description":"Supermercado Pão de Açúcar","amount":187.50,"date":
 
 class GeminiProvider(AIProvider):
     def __init__(self):
-        genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-        self._model = genai.GenerativeModel("gemini-2.0-flash")
+        ssm_param = os.environ.get("SSM_GEMINI_API_KEY")
+        api_key = _get_ssm_value(ssm_param) if ssm_param else os.environ["GEMINI_API_KEY"]
+        genai.configure(api_key=api_key)
+        self._model = genai.GenerativeModel("gemini-1.5-flash")
 
     def extract_transactions(self, pdf_bytes: bytes, filename: str) -> list[Transaction]:
         images = self._pdf_to_images(pdf_bytes)

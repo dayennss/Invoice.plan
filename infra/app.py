@@ -8,7 +8,7 @@ app = cdk.App()
 
 env = cdk.Environment(
     account=app.node.try_get_context("account"),
-    region="sa-east-1",
+    region="us-east-1",
 )
 
 storage = StorageStack(app, "InvoicePlanStorage", env=env)

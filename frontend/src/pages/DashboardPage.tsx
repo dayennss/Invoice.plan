@@ -6,6 +6,10 @@ import SummaryCard from '@/components/SummaryCard'
 import CategoryChart from '@/components/CategoryChart'
 import TransactionList from '@/components/TransactionList'
 import InvoiceUpload from '@/components/InvoiceUpload'
+import MonthlyTimeline from '@/components/MonthlyTimeline'
+import SpendingHeatmap from '@/components/SpendingHeatmap'
+import RecurringSubscriptions from '@/components/RecurringSubscriptions'
+import InstallmentTracker from '@/components/InstallmentTracker'
 import { useDashboard } from '@/hooks/useDashboard'
 import { useAuthState } from '@/hooks/useAuthState'
 
@@ -89,6 +93,21 @@ export default function DashboardPage() {
               <div>
                 <InvoiceUpload />
               </div>
+            </div>
+
+            {/* Evolução mensal */}
+            <MonthlyTimeline yearMonth={yearMonth} />
+
+            {/* Heatmap */}
+            <SpendingHeatmap
+              transactions={data?.transactions ?? []}
+              yearMonth={yearMonth}
+            />
+
+            {/* Assinaturas + Parcelas */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <RecurringSubscriptions transactions={data?.transactions ?? []} />
+              <InstallmentTracker transactions={data?.transactions ?? []} />
             </div>
 
             {/* Lista de transações */}

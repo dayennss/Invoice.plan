@@ -1,6 +1,7 @@
 import json
 import base64
 import uuid
+import traceback
 from datetime import datetime
 
 from shared.auth import verify_token
@@ -63,6 +64,7 @@ def _upload_invoice(event: dict, user_id: str) -> dict:
         provider = get_ai_provider()
         transactions = provider.extract_transactions(pdf_bytes, filename)
     except Exception as e:
+        print(f"[ERROR] extract_transactions failed: {traceback.format_exc()}")
         _mark_invoice_error(user_id, year_month, invoice_id)
         return error(f"Falha ao processar PDF: {str(e)}", 500)
 

@@ -4,9 +4,9 @@ from aws_cdk import (
     aws_apigatewayv2 as apigwv2,
     aws_apigatewayv2_integrations as integrations,
     aws_dynamodb as dynamodb,
+    aws_iam as iam,
 )
 from constructs import Construct
-import os
 
 
 class ApiStack(cdk.Stack):
@@ -15,15 +15,18 @@ class ApiStack(cdk.Stack):
 
         shared_layer = lambda_.LayerVersion(
             self, "SharedLayer",
-            code=lambda_.Code.from_asset("../backend"),
+            code=lambda_.Code.from_asset("../backend/layer"),
             compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
-            description="invoice.plan shared modules",
+            description="invoice.plan shared modules + dependencies",
         )
 
+        # Passa os NOMES dos parâmetros SSM — Lambda lê os valores em runtime
         common_env = {
-            "DYNAMODB_TABLE": table.table_name,
-            "AI_PROVIDER": "gemini",
-            "AWS_REGION": "sa-east-1",
+            "DYNAMODB_TABLE":                   table.table_name,
+            "AI_PROVIDER":                      "groq",
+            "AWS_ACCOUNT_REGION":               "us-east-1",
+            "SSM_GROQ_API_KEY":                 "/invoice-plan/GROQ_API_KEY",
+            "SSM_FIREBASE_SERVICE_ACCOUNT_JSON": "/invoice-plan/FIREBASE_SERVICE_ACCOUNT_JSON",
         }
 
         invoices_fn = lambda_.Function(
@@ -48,6 +51,30 @@ class ApiStack(cdk.Stack):
             memory_size=256,
         )
 
+        # Permissão para ler SecureString do SSM + decrypt via KMS aws/ssm
+        ssm_policy = iam.PolicyStatement(
+            actions=["ssm:GetParameter"],
+            resources=[
+                f"arn:aws:ssm:us-east-1:{self.account}:parameter/invoice-plan/*"
+            ],
+        )
+        kms_policy = iam.PolicyStatement(
+            actions=["kms:Decrypt"],
+            resources=[
+                f"arn:aws:kms:us-east-1:{self.account}:key/alias/aws/ssm",
+                f"arn:aws:kms:us-east-1:{self.account}:key/*",
+            ],
+            conditions={
+                "StringEquals": {
+                    "kms:ViaService": f"ssm.us-east-1.amazonaws.com"
+                }
+            },
+        )
+        invoices_fn.add_to_role_policy(ssm_policy)
+        invoices_fn.add_to_role_policy(kms_policy)
+        dashboard_fn.add_to_role_policy(ssm_policy)
+        dashboard_fn.add_to_role_policy(kms_policy)
+
         table.grant_read_write_data(invoices_fn)
         table.grant_read_data(dashboard_fn)
 
@@ -63,7 +90,7 @@ class ApiStack(cdk.Stack):
 
         http_api.add_routes(
             path="/invoices",
-            methods=[apigwv2.HttpMethod.POST],
+            methods=[apigwv2.HttpMethod.POST, apigwv2.HttpMethod.GET],
             integration=integrations.HttpLambdaIntegration("InvoicesIntegration", invoices_fn),
         )
         http_api.add_routes(

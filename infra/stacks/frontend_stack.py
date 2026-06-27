@@ -3,7 +3,6 @@ from aws_cdk import (
     aws_s3 as s3,
     aws_cloudfront as cloudfront,
     aws_cloudfront_origins as origins,
-    aws_s3_deployment as s3deploy,
 )
 from constructs import Construct
 
@@ -20,12 +19,13 @@ class FrontendStack(cdk.Stack):
             auto_delete_objects=True,
         )
 
-        oac = cloudfront.S3OriginAccessControl(self, "OAC")
+        oai = cloudfront.OriginAccessIdentity(self, "OAI")
+        bucket.grant_read(oai)
 
         distribution = cloudfront.Distribution(
             self, "Distribution",
             default_behavior=cloudfront.BehaviorOptions(
-                origin=origins.S3BucketOrigin.with_origin_access_control(bucket, origin_access_control=oac),
+                origin=origins.S3Origin(bucket, origin_access_identity=oai),
                 viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
                 cache_policy=cloudfront.CachePolicy.CACHING_OPTIMIZED,
             ),
@@ -39,5 +39,9 @@ class FrontendStack(cdk.Stack):
             ],
         )
 
+        self.bucket_name = bucket.bucket_name
+        self.distribution_id = distribution.distribution_id
+
         cdk.CfnOutput(self, "DistributionUrl", value=f"https://{distribution.distribution_domain_name}")
         cdk.CfnOutput(self, "BucketName", value=bucket.bucket_name)
+        cdk.CfnOutput(self, "DistributionId", value=distribution.distribution_id)

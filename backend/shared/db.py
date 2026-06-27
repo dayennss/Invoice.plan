@@ -8,7 +8,7 @@ _table = None
 def get_table():
     global _table
     if _table is None:
-        dynamodb = boto3.resource("dynamodb", region_name=os.environ.get("AWS_REGION", "sa-east-1"))
+        dynamodb = boto3.resource("dynamodb", region_name=os.environ.get("AWS_REGION", "us-east-1"))
         _table = dynamodb.Table(os.environ["DYNAMODB_TABLE"])
     return _table
 

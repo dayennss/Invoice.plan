@@ -10,18 +10,10 @@ interface UploadResult {
 }
 
 async function uploadInvoice(file: File): Promise<UploadResult> {
-  const buffer = await file.arrayBuffer()
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
-
   const { data } = await api.post<UploadResult>(
     `/invoices?filename=${encodeURIComponent(file.name)}`,
-    base64,
-    {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'X-Base64-Encoded': 'true',
-      },
-    },
+    file,
+    { headers: { 'Content-Type': 'application/pdf' } },
   )
   return data
 }

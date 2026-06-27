@@ -22,11 +22,18 @@ dist/
 *.local
 frontend/.vite/
 frontend/.env
+*.tsbuildinfo
+
+# Claude Code
+.claude/
 
 # AWS CDK
 cdk.out/
 *.js.map
 .cdk.staging/
+
+# Lambda layer build (artefato — rodar pip install antes do deploy)
+backend/layer/
 
 # IDE
 .idea/

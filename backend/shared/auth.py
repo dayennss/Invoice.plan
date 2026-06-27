@@ -1,4 +1,6 @@
 import os
+import json
+import boto3
 import firebase_admin
 from firebase_admin import auth, credentials
 from .response import error
@@ -6,10 +8,21 @@ from .response import error
 _initialized = False
 
 
+def _get_ssm_value(param_name: str) -> str:
+    client = boto3.client("ssm", region_name=os.environ.get("AWS_ACCOUNT_REGION", "us-east-1"))
+    resp = client.get_parameter(Name=param_name, WithDecryption=True)
+    return resp["Parameter"]["Value"]
+
+
 def _init_firebase():
     global _initialized
     if not _initialized:
-        cred = credentials.Certificate(os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"])
+        ssm_param = os.environ.get("SSM_FIREBASE_SERVICE_ACCOUNT_JSON")
+        if ssm_param:
+            sa_json = _get_ssm_value(ssm_param)
+        else:
+            sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
+        cred = credentials.Certificate(json.loads(sa_json))
         firebase_admin.initialize_app(cred)
         _initialized = True
 
