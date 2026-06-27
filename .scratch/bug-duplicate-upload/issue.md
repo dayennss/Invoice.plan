@@ -1,37 +1,21 @@
 ---
-title: "Bug: upload do mesmo PDF duas vezes duplica todas as transações"
-labels: [ready-for-agent]
-status: open
-created: 2026-06-27
-priority: P0
+title: "Bug: uploading the same PDF twice duplicates all transactions"
+status: closed
+labels: [bug, backend]
 ---
 
-## Problema
+## Problem
 
-Não existe nenhum mecanismo de deduplicação. Se o usuário subir o mesmo PDF duas vezes (por engano ou ao reprocessar), todas as transações são inseridas novamente com novos UUIDs, duplicando o total do mês.
+Uploading the same PDF file a second time duplicates every transaction and doubles the monthly total.
+There is no deduplication mechanism.
 
-## Impacto
+## Fix
 
-- Totais incorretos no dashboard
-- Transações duplicadas na `TransactionList`
-- Summary com valor dobrado
+1. Compute `pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()` at the start of `_upload_invoice`.
+2. Call `_find_invoice_by_hash(user_id, pdf_hash)` which queries all `INVOICE#` items for the user and checks for a matching `pdf_hash`.
+3. If a match is found, return `error("Fatura já processada anteriormente", 409)` before any write.
+4. Store `pdf_hash` in both the initial "processing" item and the final "done" item.
 
-## Solução sugerida
+## Resolution
 
-Duas camadas de defesa:
-
-1. **Hash do conteúdo do PDF**: calcular `hashlib.sha256(pdf_bytes).hexdigest()` e armazenar no item `INVOICE#`. Antes de processar, verificar se já existe um invoice com esse hash para o usuário. Se sim, retornar erro 409 com mensagem clara.
-
-2. **Aviso no frontend**: ao detectar 409, exibir mensagem "Esta fatura já foi enviada anteriormente" em vez de erro genérico.
-
-```python
-pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
-# verificar se existe INVOICE com pdf_hash == pdf_hash
-# se sim: return error("Fatura já processada", 409)
-```
-
-## Arquivos afetados
-
-- `backend/functions/invoices/handler.py` — checar hash antes de processar
-- `backend/shared/db.py` — query por hash (pode usar GSI ou scan limitado)
-- `frontend/src/components/InvoiceUpload.tsx` — tratar 409
+Fixed in `backend/functions/invoices/handler.py`: added `hashlib` import, `_find_invoice_by_hash` helper, and `pdf_hash` field stored on invoice items.
