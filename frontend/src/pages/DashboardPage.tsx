@@ -111,7 +111,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Lista de transações */}
-            <TransactionList transactions={data?.transactions ?? []} />
+            <TransactionList transactions={data?.transactions ?? []} yearMonth={yearMonth} />
           </div>
         )}
       </main>
