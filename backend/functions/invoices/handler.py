@@ -1,6 +1,7 @@
 import json
 import base64
 import uuid
+import hashlib
 import traceback
 from datetime import datetime
 
@@ -8,8 +9,9 @@ from shared.auth import verify_token
 from shared.response import ok, error
 from shared.ai_factory import get_ai_provider
 from shared.db import (
-    get_table, user_pk, invoice_sk, transaction_sk, summary_sk, put_item
+    get_table, user_pk, invoice_sk, transaction_sk, summary_sk, put_item, get_summary
 )
+from boto3.dynamodb.conditions import Key
 
 
 def lambda_handler(event: dict, context) -> dict:
@@ -43,11 +45,20 @@ def _upload_invoice(event: dict, user_id: str) -> dict:
     if not filename.lower().endswith(".pdf"):
         return error("Apenas arquivos PDF são aceitos", 400)
 
-    invoice_id = str(uuid.uuid4())
+    # Bug 1 fix: use yearMonth from query string if provided and valid
     now = datetime.utcnow().isoformat()
-    year_month = now[:7]  # YYYY-MM
+    year_month = (event.get("queryStringParameters") or {}).get("yearMonth", "")
+    if not year_month or len(year_month) != 7:
+        year_month = now[:7]
 
-    # Salva invoice como processing
+    # Bug 3 fix: compute PDF hash and check for duplicate
+    pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
+    if _find_invoice_by_hash(user_id, pdf_hash):
+        return error("Fatura já processada anteriormente", 409)
+
+    invoice_id = str(uuid.uuid4())
+
+    # Salva invoice como processing (including pdf_hash)
     put_item({
         "PK": user_pk(user_id),
         "SK": invoice_sk(year_month, invoice_id),
@@ -56,6 +67,7 @@ def _upload_invoice(event: dict, user_id: str) -> dict:
         "filename": filename,
         "year_month": year_month,
         "status": "processing",
+        "pdf_hash": pdf_hash,
         "created_at": now,
     })
 
@@ -86,18 +98,21 @@ def _upload_invoice(event: dict, user_id: str) -> dict:
             "is_recurring": tx.is_recurring,
         })
 
-    # Calcula e persiste summary do mês
-    summary = _build_summary(year_month, transactions)
+    # Bug 2 fix: merge with existing summary before saving
+    new_summary = _build_summary(year_month, transactions)
+    existing_summary = get_summary(user_id, year_month)
+    merged_summary = _merge_summary(existing_summary, new_summary)
+
     put_item({
         "PK": user_pk(user_id),
         "SK": summary_sk(year_month),
         "year_month": year_month,
-        "total": str(summary["total"]),
-        "by_category": summary["by_category"],
-        "transaction_count": summary["transaction_count"],
+        "total": str(merged_summary["total"]),
+        "by_category": merged_summary["by_category"],
+        "transaction_count": merged_summary["transaction_count"],
     })
 
-    # Marca invoice como done
+    # Marca invoice como done (including pdf_hash)
     put_item({
         "PK": user_pk(user_id),
         "SK": invoice_sk(year_month, invoice_id),
@@ -106,6 +121,7 @@ def _upload_invoice(event: dict, user_id: str) -> dict:
         "filename": filename,
         "year_month": year_month,
         "status": "done",
+        "pdf_hash": pdf_hash,
         "transaction_count": len(transactions),
         "created_at": now,
     })
@@ -114,14 +130,11 @@ def _upload_invoice(event: dict, user_id: str) -> dict:
         "invoice_id": invoice_id,
         "year_month": year_month,
         "transaction_count": len(transactions),
-        "total": summary["total"],
+        "total": merged_summary["total"],
     }, 201)
 
 
 def _list_invoices(event: dict, user_id: str) -> dict:
-    from shared.db import get_table
-    from boto3.dynamodb.conditions import Key
-
     table = get_table()
     resp = table.query(
         KeyConditionExpression=Key("PK").eq(user_pk(user_id)) & Key("SK").begins_with("INVOICE#"),
@@ -143,6 +156,46 @@ def _build_summary(year_month: str, transactions) -> dict:
         "by_category": {k: str(v) for k, v in by_category.items()},
         "transaction_count": len(transactions),
     }
+
+
+def _merge_summary(existing: dict | None, new: dict) -> dict:
+    """Merge an existing DynamoDB summary item with a newly computed summary."""
+    if existing is None:
+        return new
+
+    # by_category values are stored as strings in DynamoDB
+    existing_by_cat: dict[str, float] = {
+        k: float(v) for k, v in existing.get("by_category", {}).items()
+    }
+    new_by_cat: dict[str, float] = {
+        k: float(v) for k, v in new.get("by_category", {}).items()
+    }
+
+    merged_by_cat: dict[str, float] = dict(existing_by_cat)
+    for category, amount in new_by_cat.items():
+        merged_by_cat[category] = round(merged_by_cat.get(category, 0.0) + amount, 2)
+
+    merged_total = round(float(existing.get("total", 0)) + float(new.get("total", 0)), 2)
+    merged_count = int(existing.get("transaction_count", 0)) + int(new.get("transaction_count", 0))
+
+    return {
+        "year_month": new["year_month"],
+        "total": merged_total,
+        "by_category": {k: str(v) for k, v in merged_by_cat.items()},
+        "transaction_count": merged_count,
+    }
+
+
+def _find_invoice_by_hash(user_id: str, pdf_hash: str) -> bool:
+    """Return True if any INVOICE# item for this user has the given pdf_hash."""
+    table = get_table()
+    resp = table.query(
+        KeyConditionExpression=Key("PK").eq(user_pk(user_id)) & Key("SK").begins_with("INVOICE#"),
+    )
+    for item in resp.get("Items", []):
+        if item.get("pdf_hash") == pdf_hash:
+            return True
+    return False
 
 
 def _mark_invoice_error(user_id: str, year_month: str, invoice_id: str) -> None:
