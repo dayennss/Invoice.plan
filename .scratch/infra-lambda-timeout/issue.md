@@ -1,37 +1,27 @@
 ---
-title: "Infra: aumentar timeout da Lambda de invoices para 90s"
-labels: [ready-for-agent]
-status: open
+title: Increase InvoicesFunction Lambda timeout from 60s to 90s
+labels: [infra, reliability]
+status: closed
 created: 2026-06-27
-priority: P1
 ---
 
-## Problema
+## Problem
 
-A Lambda `InvoicesFunction` tem timeout de 60s (`api_stack.py:39`). O pipeline de processamento inclui:
+The invoice processing pipeline can exceed 60s in the worst case:
 
-- Chamada SSM (~100-200ms cold start)
-- PyMuPDF extract (~200ms para PDFs grandes)
-- Chamada Groq com `timeout=30` (`groq_provider.py:115`)
-- Se retry por rate limit: até 7s adicionais de sleep
-- Parse + DynamoDB writes
+- Cold start SSM read (~200ms)
+- PyMuPDF PDF parsing
+- Groq API call with timeout=30s
+- Possible retry on rate limit (up to 7s extra)
 
-No pior caso (cold start + rate limit retry + Groq lento), o total pode superar 60s.
+Combined, these can push total execution past the 60s Lambda limit, causing timeout errors.
 
-## Solução
+## Solution
 
-Aumentar o timeout para 90s em `infra/stacks/api_stack.py`:
+Increase `InvoicesFunction` timeout from 60s to 90s in `infra/stacks/api_stack.py`.
 
-```python
-invoices_fn = lambda_.Function(
-    ...
-    timeout=cdk.Duration.seconds(90),  # era 60
-    ...
-)
-```
+The `DashboardFunction` timeout (15s) is not affected.
 
-O API Gateway HTTP v2 suporta até 30s de timeout por padrão, mas pode ser configurado para até 29s. **Atenção**: se o API GW tiver timeout menor que a Lambda, o cliente recebe 504 mesmo que a Lambda complete. Verificar se há timeout configurado no API GW (atualmente não parece ter).
+## Changes
 
-## Arquivos afetados
-
-- `infra/stacks/api_stack.py` — linha 39
+- `infra/stacks/api_stack.py`: `timeout=cdk.Duration.seconds(90)`

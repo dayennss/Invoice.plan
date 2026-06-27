@@ -36,7 +36,7 @@ class ApiStack(cdk.Stack):
             code=lambda_.Code.from_asset("../backend/functions/invoices"),
             layers=[shared_layer],
             environment=common_env,
-            timeout=cdk.Duration.seconds(60),
+            timeout=cdk.Duration.seconds(90),
             memory_size=512,
         )
 
