@@ -46,13 +46,14 @@ def _upload_invoice(event: dict, user_id: str) -> dict:
     if not filename.lower().endswith(".pdf"):
         return error("Apenas arquivos PDF são aceitos", 400)
 
-    # Bug 1 fix: use yearMonth from query string if provided and valid
+    headers = {k.lower(): v for k, v in (event.get("headers") or {}).items()}
+    pdf_password = headers.get("x-pdf-password") or None
+
     now = datetime.utcnow().isoformat()
     year_month = (event.get("queryStringParameters") or {}).get("yearMonth", "")
     if not year_month or len(year_month) != 7:
         year_month = now[:7]
 
-    # Bug 3 fix: compute PDF hash and check for duplicate
     pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
     if _find_invoice_by_hash(user_id, pdf_hash):
         return error("Fatura já processada anteriormente", 409)
@@ -197,7 +198,7 @@ def _find_invoice_by_hash(user_id: str, pdf_hash: str) -> bool:
         KeyConditionExpression=Key("PK").eq(user_pk(user_id)) & Key("SK").begins_with("INVOICE#"),
     )
     for item in resp.get("Items", []):
-        if item.get("pdf_hash") == pdf_hash:
+        if item.get("pdf_hash") == pdf_hash and item.get("status") == "done":
             return True
     return False
 
