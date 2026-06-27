@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { CATEGORY_LABELS, CATEGORY_COLORS, type Transaction, type TransactionCategory } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { exportTransactionsToCSV } from '@/lib/export'
 
 interface Props {
   transactions: Transaction[]
+  yearMonth: string
 }
 
-export default function TransactionList({ transactions }: Props) {
+export default function TransactionList({ transactions, yearMonth }: Props) {
   const [filter, setFilter] = useState<string>('all')
 
   const categories = [...new Set(transactions.map((t) => t.category))]
@@ -21,7 +23,20 @@ export default function TransactionList({ transactions }: Props) {
         <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
           Transações ({filtered.length})
         </p>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => exportTransactionsToCSV(transactions, yearMonth)}
+            disabled={transactions.length === 0}
+            className="text-xs px-2.5 py-1 rounded-md"
+            style={{
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border-default)',
+              cursor: transactions.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: transactions.length === 0 ? 0.4 : 1,
+            }}
+          >
+            Exportar CSV
+          </button>
           <FilterChip label="Todas" active={filter === 'all'} onClick={() => setFilter('all')} />
           {categories.map((cat) => (
             <FilterChip
