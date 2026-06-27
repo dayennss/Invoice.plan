@@ -46,8 +46,8 @@ class GroqProvider(AIProvider):
         ssm_param = os.environ.get("SSM_GROQ_API_KEY")
         self._api_key = _get_ssm_value(ssm_param) if ssm_param else os.environ["GROQ_API_KEY"]
 
-    def extract_transactions(self, pdf_bytes: bytes, filename: str) -> list[Transaction]:
-        text = self._extract_text(pdf_bytes)
+    def extract_transactions(self, pdf_bytes: bytes, filename: str, password: str | None = None) -> list[Transaction]:
+        text = self._extract_text(pdf_bytes, password)
         raw = self._call_groq(text)
         return self._parse_response(raw)
 
@@ -55,8 +55,13 @@ class GroqProvider(AIProvider):
     _DATE_RE = re.compile(r"\d{2}/\d{2}(?:/\d{2,4})?")
     _AMOUNT_RE = re.compile(r"\d{1,3}(?:\.\d{3})*,\d{2}")
 
-    def _extract_text(self, pdf_bytes: bytes) -> str:
+    def _extract_text(self, pdf_bytes: bytes, password: str | None = None) -> str:
+        from ..exceptions import PDFPasswordRequired
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        if doc.needs_pass:
+            if not password or not doc.authenticate(password):
+                doc.close()
+                raise PDFPasswordRequired()
         pages = [page.get_text() for page in doc]
         doc.close()
         full_text = "\n".join(pages)

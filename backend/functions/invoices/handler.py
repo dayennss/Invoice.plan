@@ -7,6 +7,7 @@ from datetime import datetime
 from shared.auth import verify_token
 from shared.response import ok, error
 from shared.ai_factory import get_ai_provider
+from shared.exceptions import PDFPasswordRequired
 from shared.db import (
     get_table, user_pk, invoice_sk, transaction_sk, summary_sk, put_item
 )
@@ -43,6 +44,9 @@ def _upload_invoice(event: dict, user_id: str) -> dict:
     if not filename.lower().endswith(".pdf"):
         return error("Apenas arquivos PDF são aceitos", 400)
 
+    headers = {k.lower(): v for k, v in (event.get("headers") or {}).items()}
+    pdf_password = headers.get("x-pdf-password") or None
+
     invoice_id = str(uuid.uuid4())
     now = datetime.utcnow().isoformat()
     year_month = now[:7]  # YYYY-MM
@@ -62,7 +66,10 @@ def _upload_invoice(event: dict, user_id: str) -> dict:
     # Extrai transações via IA
     try:
         provider = get_ai_provider()
-        transactions = provider.extract_transactions(pdf_bytes, filename)
+        transactions = provider.extract_transactions(pdf_bytes, filename, password=pdf_password)
+    except PDFPasswordRequired:
+        _mark_invoice_error(user_id, year_month, invoice_id)
+        return error("PDF_PASSWORD_REQUIRED", 422)
     except Exception as e:
         print(f"[ERROR] extract_transactions failed: {traceback.format_exc()}")
         _mark_invoice_error(user_id, year_month, invoice_id)

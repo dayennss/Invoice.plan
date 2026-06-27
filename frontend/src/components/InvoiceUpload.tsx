@@ -3,13 +3,15 @@ import { useUploadInvoice } from '@/hooks/useUploadInvoice'
 import { formatCurrency } from '@/lib/utils'
 
 export default function InvoiceUpload() {
-  const { upload, isLoading, error, result, reset, progress } = useUploadInvoice()
+  const { upload, submitPassword, passwordRequired, isLoading, error, result, reset, progress } = useUploadInvoice()
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
+  const [password, setPassword] = useState('')
 
   function handleFile(file: File | undefined) {
     if (!file || file.type !== 'application/pdf') return
     reset()
+    setPassword('')
     upload(file)
   }
 
@@ -17,6 +19,11 @@ export default function InvoiceUpload() {
     e.preventDefault()
     setDragging(false)
     handleFile(e.dataTransfer.files[0])
+  }
+
+  function handleSubmitPassword() {
+    if (!password.trim()) return
+    submitPassword(password)
   }
 
   if (result) {
@@ -40,6 +47,76 @@ export default function InvoiceUpload() {
         >
           Enviar outra fatura
         </button>
+      </div>
+    )
+  }
+
+  if (passwordRequired) {
+    return (
+      <div className="ip-card flex flex-col gap-4">
+        <div>
+          <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+            PDF protegido por senha
+          </p>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            Este PDF está protegido. Digite a senha para continuar.
+          </p>
+        </div>
+
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSubmitPassword()}
+          placeholder="Senha do PDF"
+          disabled={isLoading}
+          autoFocus
+          className="w-full px-3 py-2 rounded-md text-sm"
+          style={{
+            background: 'var(--surface-secondary)',
+            border: '1px solid var(--border-default)',
+            color: 'var(--text-primary)',
+            outline: 'none',
+          }}
+        />
+
+        {error && (
+          <p className="text-sm px-4 py-2 rounded-md" style={{
+            color: 'var(--financial-expense)',
+            background: 'var(--financial-expense-bg)',
+            border: '1px solid var(--financial-expense-border)',
+          }}>
+            Senha incorreta. Tente novamente.
+          </p>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            onClick={handleSubmitPassword}
+            disabled={isLoading || !password.trim()}
+            className="flex-1 px-4 py-2 rounded-md text-sm font-medium"
+            style={{
+              background: 'var(--color-green)',
+              color: '#000',
+              cursor: isLoading || !password.trim() ? 'not-allowed' : 'pointer',
+              opacity: isLoading || !password.trim() ? 0.6 : 1,
+            }}
+          >
+            {isLoading ? 'Processando...' : 'Processar'}
+          </button>
+          <button
+            onClick={() => { reset(); setPassword('') }}
+            disabled={isLoading}
+            className="px-4 py-2 rounded-md text-sm"
+            style={{
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border-default)',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+            }}
+          >
+            Cancelar
+          </button>
+        </div>
       </div>
     )
   }

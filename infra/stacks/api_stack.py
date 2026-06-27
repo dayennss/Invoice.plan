@@ -82,7 +82,7 @@ class ApiStack(cdk.Stack):
             self, "HttpApi",
             api_name="invoice-plan-api",
             cors_preflight=apigwv2.CorsPreflightOptions(
-                allow_headers=["Content-Type", "Authorization"],
+                allow_headers=["Content-Type", "Authorization", "X-PDF-Password"],
                 allow_methods=[apigwv2.CorsHttpMethod.ANY],
                 allow_origins=["*"],
             ),
