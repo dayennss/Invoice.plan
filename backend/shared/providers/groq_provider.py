@@ -2,6 +2,7 @@ import os
 import json
 import uuid
 import re
+import time
 import fitz  # PyMuPDF
 
 import boto3
@@ -9,6 +10,8 @@ import requests
 
 from ..ai_provider import AIProvider
 from ..models import Transaction
+
+_CACHED_API_KEY: str | None = None
 
 _CATEGORIES = [
     "alimentacao", "transporte", "moradia", "saude",
@@ -43,8 +46,11 @@ class GroqProvider(AIProvider):
     _MAX_CHARS = 28_000  # ~9.3k tokens (português ≈ 3 chars/token), margem p/ prompt
 
     def __init__(self):
-        ssm_param = os.environ.get("SSM_GROQ_API_KEY")
-        self._api_key = _get_ssm_value(ssm_param) if ssm_param else os.environ["GROQ_API_KEY"]
+        global _CACHED_API_KEY
+        if _CACHED_API_KEY is None:
+            ssm_param = os.environ.get("SSM_GROQ_API_KEY")
+            _CACHED_API_KEY = _get_ssm_value(ssm_param) if ssm_param else os.environ["GROQ_API_KEY"]
+        self._api_key = _CACHED_API_KEY
 
     def extract_transactions(self, pdf_bytes: bytes, filename: str, password: str | None = None) -> list[Transaction]:
         text = self._extract_text(pdf_bytes, password)
@@ -99,24 +105,31 @@ class GroqProvider(AIProvider):
         return result
 
     def _call_groq(self, text: str) -> str:
-        resp = requests.post(
-            self._GROQ_URL,
-            headers={"Authorization": f"Bearer {self._api_key}"},
-            json={
-                "model": self._MODEL,
-                "messages": [
-                    {"role": "system", "content": _SYSTEM},
-                    {"role": "user", "content": f"Texto da fatura:\n\n{text}"},
-                ],
-                "temperature": 0.1,
-                "max_tokens": 8192,
-            },
-            timeout=30,
-        )
-        if not resp.ok:
-            print(f"[GROQ ERROR] {resp.status_code}: {resp.text}")
-            resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"].strip()
+        for attempt in range(3):
+            resp = requests.post(
+                self._GROQ_URL,
+                headers={"Authorization": f"Bearer {self._api_key}"},
+                json={
+                    "model": self._MODEL,
+                    "messages": [
+                        {"role": "system", "content": _SYSTEM},
+                        {"role": "user", "content": f"Texto da fatura:\n\n{text}"},
+                    ],
+                    "temperature": 0.1,
+                    "max_tokens": 8192,
+                },
+                timeout=30,
+            )
+            if resp.status_code == 429:
+                wait = 2 ** attempt  # 1s, 2s, 4s
+                print(f"[GROQ] rate limit (tentativa {attempt + 1}/3), aguardando {wait}s")
+                time.sleep(wait)
+                continue
+            if not resp.ok:
+                print(f"[GROQ ERROR] {resp.status_code}: {resp.text}")
+                resp.raise_for_status()
+            return resp.json()["choices"][0]["message"]["content"].strip()
+        raise Exception("Groq rate limit excedido após 3 tentativas. Tente novamente em 1 minuto.")
 
     def _parse_response(self, raw: str) -> list[Transaction]:
         clean = raw.removeprefix("```json").removeprefix("```").removesuffix("```").strip()

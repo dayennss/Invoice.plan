@@ -1,42 +1,18 @@
 ---
-title: "Perf: cache da chave SSM em memória entre invocações warm"
-labels: [ready-for-agent]
-status: open
+title: Cache Groq API key from SSM in module scope
+labels: [performance]
+status: closed
 created: 2026-06-27
-priority: P1
 ---
 
-## Problema
+## Problem
 
-Em `backend/shared/providers/groq_provider.py:46-47`, a chave de API do Groq é buscada no SSM Parameter Store **a cada instanciação do `GroqProvider`**. Isso adiciona 100-200ms de latência desnecessária em toda invocação Lambda (incluindo warm invocations).
+`GroqProvider.__init__` calls `_get_ssm_value(ssm_param)` on every instantiation. Since Lambda creates a new provider instance per invocation, this adds 100-200ms of SSM Parameter Store latency even on warm invocations where the process is already running.
 
-```python
-def __init__(self):
-    ssm_param = os.environ.get("SSM_GROQ_API_KEY")
-    self._api_key = _get_ssm_value(ssm_param) if ssm_param else os.environ["GROQ_API_KEY"]
-```
+## Fix
 
-## Solução
+Add a module-level `_CACHED_API_KEY` variable. On the first warm invocation the key is fetched from SSM and stored; subsequent warm invocations reuse the cached value with no network call.
 
-Cachear o valor em uma variável de módulo. O Lambda reutiliza o processo entre invocações warm, então o valor é lido apenas uma vez por container:
+## Affected file
 
-```python
-_CACHED_API_KEY: str | None = None
-
-class GroqProvider(AIProvider):
-    def __init__(self):
-        global _CACHED_API_KEY
-        if _CACHED_API_KEY is None:
-            ssm_param = os.environ.get("SSM_GROQ_API_KEY")
-            _CACHED_API_KEY = _get_ssm_value(ssm_param) if ssm_param else os.environ["GROQ_API_KEY"]
-        self._api_key = _CACHED_API_KEY
-```
-
-## Benefício
-
-- Elimina chamada SSM em invocações warm (~100-200ms por request)
-- Reduz custo de chamadas SSM
-
-## Arquivos afetados
-
-- `backend/shared/providers/groq_provider.py`
+`backend/shared/providers/groq_provider.py`
