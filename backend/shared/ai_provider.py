@@ -6,5 +6,11 @@ class AIProvider(ABC):
     """Interface para extração de transações de documentos financeiros."""
 
     @abstractmethod
-    def extract_transactions(self, pdf_bytes: bytes, filename: str, password: str | None = None) -> list[Transaction]:
+    def extract_transactions(
+        self,
+        pdf_bytes: bytes,
+        filename: str,
+        password: str | None = None,
+        year_month_hint: str | None = None,
+    ) -> list[Transaction]:
         ...

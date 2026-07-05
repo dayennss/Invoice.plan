@@ -6,13 +6,22 @@ import { api } from '@/lib/api'
 interface UploadResult {
   invoice_id: string
   year_month: string
-  transaction_count: number
-  total: number
+  label: string
+  status: 'processing' | 'done' | 'error'
 }
 
-async function uploadInvoice(file: File, password?: string): Promise<UploadResult> {
+interface UploadArgs {
+  file: File
+  password?: string
+  label?: string
+}
+
+async function uploadInvoice({ file, password, label }: UploadArgs): Promise<UploadResult> {
+  const params = new URLSearchParams({ filename: file.name })
+  if (label && label.trim()) params.set('label', label.trim())
+
   const { data } = await api.post<UploadResult>(
-    `/invoices?filename=${encodeURIComponent(file.name)}`,
+    `/invoices?${params.toString()}`,
     file,
     {
       headers: {
@@ -37,18 +46,21 @@ export function useUploadInvoice() {
   const [progress, setProgress] = useState<'idle' | 'reading' | 'processing' | 'done'>('idle')
   const [passwordRequired, setPasswordRequired] = useState(false)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [pendingLabel, setPendingLabel] = useState<string | undefined>(undefined)
 
   const mutation = useMutation({
-    mutationFn: async ({ file, password }: { file: File; password?: string }) => {
+    mutationFn: async (args: UploadArgs) => {
       setProgress('reading')
-      const result = await uploadInvoice(file, password)
+      const result = await uploadInvoice(args)
       setProgress('done')
       return result
     },
     onSuccess: (data) => {
       setPasswordRequired(false)
       setPendingFile(null)
+      setPendingLabel(undefined)
       queryClient.invalidateQueries({ queryKey: ['dashboard', data.year_month] })
+      queryClient.invalidateQueries({ queryKey: ['invoices', data.year_month] })
     },
     onError: (err) => {
       setProgress('idle')
@@ -57,19 +69,21 @@ export function useUploadInvoice() {
       } else {
         setPasswordRequired(false)
         setPendingFile(null)
+        setPendingLabel(undefined)
       }
     },
   })
 
-  function upload(file: File) {
+  function upload(file: File, label?: string) {
     setPendingFile(file)
+    setPendingLabel(label)
     setPasswordRequired(false)
-    mutation.mutate({ file })
+    mutation.mutate({ file, label })
   }
 
   function submitPassword(password: string) {
     if (pendingFile) {
-      mutation.mutate({ file: pendingFile, password })
+      mutation.mutate({ file: pendingFile, password, label: pendingLabel })
     }
   }
 
@@ -78,6 +92,7 @@ export function useUploadInvoice() {
     setProgress('idle')
     setPasswordRequired(false)
     setPendingFile(null)
+    setPendingLabel(undefined)
   }
 
   return {

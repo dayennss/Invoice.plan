@@ -4,13 +4,19 @@ from aws_cdk import (
     aws_apigatewayv2 as apigwv2,
     aws_apigatewayv2_integrations as integrations,
     aws_dynamodb as dynamodb,
+    aws_s3 as s3,
     aws_iam as iam,
 )
 from constructs import Construct
 
 
 class ApiStack(cdk.Stack):
-    def __init__(self, scope: Construct, id: str, table: dynamodb.Table, **kwargs):
+    def __init__(
+        self, scope: Construct, id: str,
+        table: dynamodb.Table,
+        pending_pdfs_bucket: s3.Bucket,
+        **kwargs,
+    ):
         super().__init__(scope, id, **kwargs)
 
         shared_layer = lambda_.LayerVersion(
@@ -21,24 +27,44 @@ class ApiStack(cdk.Stack):
         )
 
         # Passa os NOMES dos parâmetros SSM — Lambda lê os valores em runtime
+        # Nome estático da Lambda de invoices — permite self-invoke sem referência
+        # circular (o env var vira uma string constante).
+        invoices_fn_name = "invoice-plan-invoices"
+
+        import os as _os
+        groq_key2_ssm = _os.environ.get("GROQ_API_KEY_2_SSM_PARAM", "")
+
         common_env = {
             "DYNAMODB_TABLE":                   table.table_name,
             "AI_PROVIDER":                      "groq",
             "AWS_ACCOUNT_REGION":               "us-east-1",
             "SSM_GROQ_API_KEY":                 "/invoice-plan/GROQ_API_KEY",
             "SSM_FIREBASE_SERVICE_ACCOUNT_JSON": "/invoice-plan/FIREBASE_SERVICE_ACCOUNT_JSON",
+            "PENDING_PDFS_BUCKET":              pending_pdfs_bucket.bucket_name,
+            "INVOICES_FUNCTION_NAME":           invoices_fn_name,
+            **({"SSM_GROQ_API_KEY_2": groq_key2_ssm} if groq_key2_ssm else {}),
         }
 
         invoices_fn = lambda_.Function(
             self, "InvoicesFunction",
+            function_name=invoices_fn_name,
             runtime=lambda_.Runtime.PYTHON_3_12,
             handler="handler.lambda_handler",
             code=lambda_.Code.from_asset("../backend/functions/invoices"),
             layers=[shared_layer],
             environment=common_env,
-            timeout=cdk.Duration.seconds(90),
+            timeout=cdk.Duration.seconds(300),  # async worker precisa espaço p/ chunks
             memory_size=512,
         )
+
+        # Permissões pro fluxo async
+        pending_pdfs_bucket.grant_read_write(invoices_fn)
+        # Self-invoke: policy com resource "*" evita circular dependency
+        # (grant_invoke(self) precisaria da ARN da própria Lambda antes dela existir).
+        invoices_fn.add_to_role_policy(iam.PolicyStatement(
+            actions=["lambda:InvokeFunction"],
+            resources=["*"],
+        ))
 
         dashboard_fn = lambda_.Function(
             self, "DashboardFunction",
@@ -92,6 +118,11 @@ class ApiStack(cdk.Stack):
             path="/invoices",
             methods=[apigwv2.HttpMethod.POST, apigwv2.HttpMethod.GET],
             integration=integrations.HttpLambdaIntegration("InvoicesIntegration", invoices_fn),
+        )
+        http_api.add_routes(
+            path="/invoices/{invoiceId}",
+            methods=[apigwv2.HttpMethod.DELETE],
+            integration=integrations.HttpLambdaIntegration("InvoiceDeleteIntegration", invoices_fn),
         )
         http_api.add_routes(
             path="/dashboard/{yearMonth}",

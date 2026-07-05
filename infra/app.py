@@ -12,7 +12,12 @@ env = cdk.Environment(
 )
 
 storage = StorageStack(app, "InvoicePlanStorage", env=env)
-api = ApiStack(app, "InvoicePlanApi", table=storage.table, env=env)
+api = ApiStack(
+    app, "InvoicePlanApi",
+    table=storage.table,
+    pending_pdfs_bucket=storage.pending_pdfs_bucket,
+    env=env,
+)
 FrontendStack(app, "InvoicePlanFrontend", env=env)
 
 app.synth()

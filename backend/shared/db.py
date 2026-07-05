@@ -58,3 +58,20 @@ def update_item(pk: str, sk: str, updates: dict) -> None:
         ExpressionAttributeNames=names,
         ExpressionAttributeValues=values,
     )
+
+
+def delete_item(pk: str, sk: str) -> None:
+    get_table().delete_item(Key={"PK": pk, "SK": sk})
+
+
+def batch_delete(keys: list[dict]) -> None:
+    table = get_table()
+    with table.batch_writer() as batch:
+        for key in keys:
+            batch.delete_item(Key=key)
+
+
+def get_invoice(user_id: str, year_month: str, invoice_id: str) -> dict | None:
+    table = get_table()
+    resp = table.get_item(Key={"PK": user_pk(user_id), "SK": invoice_sk(year_month, invoice_id)})
+    return resp.get("Item")

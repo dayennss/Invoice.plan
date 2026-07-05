@@ -25,17 +25,21 @@ export interface Transaction {
   amount: number
   date: string
   category: TransactionCategory
+  invoice_id?: string
+  invoice_label?: string
   installment_current?: number
   installment_total?: number
   is_recurring?: boolean
 }
 
 export interface Invoice {
-  id: string
+  invoice_id: string
   user_id: string
-  bank: string
+  filename: string
+  label: string
   year_month: string
   status: 'processing' | 'done' | 'error'
+  transaction_count?: number
   created_at: string
 }
 
@@ -70,4 +74,27 @@ export const CATEGORY_COLORS: Record<TransactionCategory, string> = {
   vestuario:     'var(--chart-8)',
   transferencias:'var(--chart-9)',
   outros:        'var(--chart-10)',
+}
+
+// Paleta de cores para distinguir múltiplas faturas de um mesmo mês.
+// Ordenada por contraste — cores mais destacadas primeiro para o caso comum
+// (usuário sobe 2-3 faturas), e as demais são fallback.
+export const INVOICE_COLOR_PALETTE = [
+  'var(--chart-1)',
+  'var(--chart-3)',
+  'var(--chart-5)',
+  'var(--chart-7)',
+  'var(--chart-9)',
+  'var(--chart-2)',
+  'var(--chart-4)',
+  'var(--chart-6)',
+  'var(--chart-8)',
+  'var(--chart-10)',
+]
+
+export function invoiceColor(invoiceId: string | undefined, invoiceIds: string[]): string {
+  if (!invoiceId) return 'var(--chart-10)'
+  const idx = invoiceIds.indexOf(invoiceId)
+  const safeIdx = idx >= 0 ? idx : 0
+  return INVOICE_COLOR_PALETTE[safeIdx % INVOICE_COLOR_PALETTE.length]
 }

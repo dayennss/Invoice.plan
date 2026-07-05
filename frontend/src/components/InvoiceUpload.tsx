@@ -1,18 +1,22 @@
 import { useRef, useState } from 'react'
 import { useUploadInvoice } from '@/hooks/useUploadInvoice'
-import { formatCurrency } from '@/lib/utils'
 
-export default function InvoiceUpload() {
+interface Props {
+  variant?: 'card' | 'compact'
+}
+
+export default function InvoiceUpload({ variant = 'card' }: Props) {
   const { upload, submitPassword, passwordRequired, isLoading, error, result, reset, progress } = useUploadInvoice()
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [password, setPassword] = useState('')
+  const [label, setLabel] = useState('')
 
   function handleFile(file: File | undefined) {
     if (!file || file.type !== 'application/pdf') return
     reset()
     setPassword('')
-    upload(file)
+    upload(file, label)
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -26,26 +30,40 @@ export default function InvoiceUpload() {
     submitPassword(password)
   }
 
+  function handleReset() {
+    reset()
+    setPassword('')
+    setLabel('')
+  }
+
   if (result) {
     return (
-      <div className="ip-card ip-card-accent flex flex-col gap-4">
+      <div className={variant === 'compact' ? 'flex flex-col gap-3' : 'ip-card ip-card-accent flex flex-col gap-4'}>
         <div className="flex items-center gap-3">
-          <span className="text-2xl">✓</span>
+          <div
+            className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin flex-shrink-0"
+            style={{ borderColor: 'var(--color-green)', borderTopColor: 'transparent' }}
+          />
           <div>
             <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Fatura processada com sucesso!
+              {result.label} em processamento
             </p>
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              {result.transaction_count} transações · Total {formatCurrency(result.total)}
+              A IA está analisando o PDF. Pode levar até 2 minutos.
             </p>
           </div>
         </div>
         <button
-          onClick={reset}
+          onClick={handleReset}
           className="text-sm self-start px-3 py-1.5 rounded-md"
-          style={{ color: 'var(--text-muted)', border: '1px solid var(--border-default)', cursor: 'pointer' }}
+          style={{
+            color: 'var(--color-green)',
+            border: '1px solid var(--border-accent)',
+            background: 'var(--accent-subtle)',
+            cursor: 'pointer',
+          }}
         >
-          Enviar outra fatura
+          + Enviar outra fatura deste mês
         </button>
       </div>
     )
@@ -53,7 +71,7 @@ export default function InvoiceUpload() {
 
   if (passwordRequired) {
     return (
-      <div className="ip-card flex flex-col gap-4">
+      <div className={variant === 'compact' ? 'flex flex-col gap-4' : 'ip-card flex flex-col gap-4'}>
         <div>
           <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
             PDF protegido por senha
@@ -105,7 +123,7 @@ export default function InvoiceUpload() {
             {isLoading ? 'Processando...' : 'Processar'}
           </button>
           <button
-            onClick={() => { reset(); setPassword('') }}
+            onClick={handleReset}
             disabled={isLoading}
             className="px-4 py-2 rounded-md text-sm"
             style={{
@@ -121,15 +139,44 @@ export default function InvoiceUpload() {
     )
   }
 
+  const wrapperClass = variant === 'compact'
+    ? 'flex flex-col gap-3'
+    : 'ip-card flex flex-col gap-4'
+
   return (
-    <div className="ip-card flex flex-col gap-4">
+    <div className={wrapperClass}>
+      {variant === 'card' && (
+        <div>
+          <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+            Enviar fatura
+          </p>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            Você pode enviar quantas faturas quiser em um mesmo mês.
+          </p>
+        </div>
+      )}
+
       <div>
-        <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-          Enviar fatura
-        </p>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          Faça upload do PDF da sua fatura de cartão de crédito.
-        </p>
+        <label
+          className="text-xs font-medium mb-1.5 block"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Apelido da fatura (opcional)
+        </label>
+        <input
+          type="text"
+          value={label}
+          onChange={(e) => setLabel(e.target.value.slice(0, 40))}
+          disabled={isLoading}
+          placeholder="Ex: Nubank, Itaú Platinum"
+          className="w-full px-3 py-2 rounded-md text-sm"
+          style={{
+            background: 'var(--surface-secondary)',
+            border: '1px solid var(--border-default)',
+            color: 'var(--text-primary)',
+            outline: 'none',
+          }}
+        />
       </div>
 
       <div
@@ -137,7 +184,7 @@ export default function InvoiceUpload() {
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
         onClick={() => !isLoading && inputRef.current?.click()}
-        className="flex flex-col items-center justify-center gap-3 p-8 rounded-lg transition-all cursor-pointer"
+        className="flex flex-col items-center justify-center gap-3 p-6 rounded-lg transition-all cursor-pointer"
         style={{
           border: `2px dashed ${dragging ? 'var(--border-accent)' : 'var(--border-default)'}`,
           background: dragging ? 'var(--accent-subtle)' : 'transparent',

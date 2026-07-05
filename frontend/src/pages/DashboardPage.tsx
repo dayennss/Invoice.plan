@@ -6,11 +6,13 @@ import SummaryCard from '@/components/SummaryCard'
 import CategoryChart from '@/components/CategoryChart'
 import TransactionList from '@/components/TransactionList'
 import InvoiceUpload from '@/components/InvoiceUpload'
+import InvoiceList from '@/components/InvoiceList'
 import MonthlyTimeline from '@/components/MonthlyTimeline'
 import SpendingHeatmap from '@/components/SpendingHeatmap'
 import RecurringSubscriptions from '@/components/RecurringSubscriptions'
 import InstallmentTracker from '@/components/InstallmentTracker'
 import { useDashboard } from '@/hooks/useDashboard'
+import { useInvoices } from '@/hooks/useInvoices'
 import { useAuthState } from '@/hooks/useAuthState'
 
 export default function DashboardPage() {
@@ -18,6 +20,7 @@ export default function DashboardPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const yearMonth = format(currentDate, 'yyyy-MM')
   const { data, isLoading } = useDashboard(yearMonth)
+  const { data: invoices = [] } = useInvoices(yearMonth)
 
   const monthLabel = format(currentDate, 'MMMM yyyy', { locale: ptBR })
   const firstName = user?.displayName?.split(' ')[0] ?? 'você'
@@ -65,6 +68,9 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-6">
+            {/* Lista de faturas do mês + botão adicionar */}
+            <InvoiceList yearMonth={yearMonth} />
+
             {/* Cards de resumo */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <SummaryCard
@@ -85,15 +91,8 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Gráfico + upload */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="lg:col-span-2">
-                <CategoryChart byCategory={data?.summary?.by_category ?? {}} />
-              </div>
-              <div>
-                <InvoiceUpload />
-              </div>
-            </div>
+            {/* Gráfico de categorias */}
+            <CategoryChart byCategory={data?.summary?.by_category ?? {}} />
 
             {/* Evolução mensal */}
             <MonthlyTimeline yearMonth={yearMonth} />
@@ -111,7 +110,11 @@ export default function DashboardPage() {
             </div>
 
             {/* Lista de transações */}
-            <TransactionList transactions={data?.transactions ?? []} yearMonth={yearMonth} />
+            <TransactionList
+              transactions={data?.transactions ?? []}
+              invoices={invoices}
+              yearMonth={yearMonth}
+            />
           </div>
         )}
       </main>
